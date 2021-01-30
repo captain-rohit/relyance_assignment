@@ -7,14 +7,14 @@ from .models import *
 from app import bcrypt,db
 from .utils import *
 from .queries import *
+import psycopg2
 
 import os, json, requests, hmac, hashlib, base64
 
-# conn = DbConnection.get_db_connection_instance()
+conn = DbConnection.get_db_connection_instance()
 
 users_blueprint = Blueprint('user', __name__)
 
-# api = Api(users_blueprint)
 
 @users_blueprint.route('/user/register', methods=['POST'])
 def register_user():
@@ -86,7 +86,7 @@ def login_user():
                 db.session.commit()
                 return jsonify(response_object), 200
         else:
-            response_object['message'] = 'User does not exist.'
+            response_object['message'] = 'Invalid Credentials'
             return jsonify(response_object), 404
     except Exception:
         response_object['message'] = 'Try again.'
@@ -142,21 +142,47 @@ def transactions(resp):
         user = User.query.filter_by(id=resp).first()
         
         query = fetch_transaction_to_query.format(user.id)
+        # print(query)
         cur.execute(query)
         paid_to = cur.fetchall()
 
-        query = fetch_transaction_from_query.format(user_id)
+        query = fetch_transaction_from_query.format(user.id)
         cur.execute(query)
         received_from = cur.fetchall()
         response['status'] = 'success'
-        response['data']['credit'] = received_from
-        response['data']['debit'] = paid_to
+        response['data'] = {}
+        received_from2 = list()
+        paid_to2 = list()
+        # if received
+        for r in received_from:
+            received_from2.append(
+                {
+                    "transaction_id" : r[0],
+                    "credit_from" : r[1],
+                    "amount" : r[2],
+                    "on" : r[3]
+                }
+            )
+        for r in paid_to:
+            paid_to2.append(
+                {
+                    "transaction_id" : r[0],
+                    "paid_to" : r[1],
+                    "amount" : r[2],
+                    "on" : r[3]
+                }
+            )
+        response['data']['credit'] = received_from2
+        response['data']['debit'] = paid_to2
         response['data']['count'] = len(received_from) + len(paid_to)
+        response['data']['balance'] = user.balance
         return jsonify(response), 200
-    except:
+    except psycopg2.DatabaseError as e:
         return jsonify(response), 404
 
+
 @users_blueprint.route('/user/owes', methods=['GET'])
+@authenticate
 def owes(resp):
     response = {
         'status' : 'failed',
@@ -172,11 +198,34 @@ def owes(resp):
         query = fetch_owe_to.format(user.id)
         cur.execute(query)
         debit = cur.fetchall()
+        credit2 = list()
+        debit2 = list()
+        for r in debit:
+            debit2.append(
+                {
+                    "ticket_id" : r[0],
+                    "requested_by" : r[1],
+                    "amount" : r[2],
+                    "on" : r[3]
+                }
+            )
+
+        for r in credit:
+            credit2.append(
+                {
+                    "ticket_id" : r[0],
+                    "requested_to" : r[1],
+                    "amount" : r[2],
+                    "on" : r[3]
+                }
+            )
+        response['data'] = {}
         response['status'] = 'success'
-        response['data']['owes_from'] = credit
-        response['data']['owes_to'] = debit
+        response['data']['owes_from'] = debit2
+        response['data']['owes_to'] = credit2
         return jsonify(response), 200
-    except:
+    except Exception as e:
+        print(e)
         return jsonify(response), 404
 
 banking_blueprint = Blueprint('banking', __name__)
@@ -200,11 +249,11 @@ def pay(resp):
         if amount>curr.balance:
             response_object['message'] = 'Insufficient Balance'
             return jsonify(response_object), 416
+
         if curr and bcrypt.check_password_hash(curr.password, password):
-        
             curr.balance -= amount
             user_to = User.query.filter_by(email=to_user).first()
-            if not user_to:
+            if not user_to or user_to == curr:
                 response_object['message'] = 'Receipient not found'
                 return jsonify(response_object), 400
 
@@ -246,6 +295,9 @@ def make_request(resp):
         if not req_user:
             response['message'] = 'Recipient not found'
             return jsonify(response), 404
+        if req_user.id == curr_user.id or amount<=float(0):
+            response['message'] = "Please make a valid request"
+            return jsonify(response), 403
 
         ticket = Request(user_from=curr_user.id,user_to=req_user.id,amount=amount)
         db.session.add(ticket)
@@ -273,7 +325,7 @@ def fulfill_ticket(resp):
         auth_header = request.headers
         ticket_id = post_data.get('id')
         password = post_data.get('password')
-        ticket = Request.query.filter_by(id=ticket_id).first()
+        ticket = Request.query.filter_by(ticket_id=ticket_id).first()
         email = User.query.filter_by(id=ticket.user_from).first()
         if not ticket:
             response['message'] = 'Request not found'
@@ -286,7 +338,7 @@ def fulfill_ticket(resp):
         pay_req = requests.post("http://127.0.0.1:5000/banking/pay", headers = auth_header, data= body)
         if not pay_req.status_code == 202:
             return pay_req.json(), pay_req.status_code
-        ticket.delete()
+        Request.query.filter_by(ticket_id=ticket_id).delete()
         db.session.commit()
         response['status'] = 'success'
         response['message'] = 'request fulfilled'
@@ -296,6 +348,31 @@ def fulfill_ticket(resp):
         response['message'] = 'Transaction error'
         return jsonify(response), 402
         
-
-
-
+@banking_blueprint.route('/banking/credit',methods = ['POST'])
+@authenticate
+def make_credit(resp):
+    post_data = request.get_json()
+    response = {
+        'status' : 'failed',
+        'message' : 'Invalid payload'
+    }
+    try:    
+        amount = float(post_data.get('amount'))
+        password = post_data.get('password')
+        print(amount, password)
+    except:
+        return jsonify(response), 400
+    try:
+        user = User.query.filter_by(id=resp).first()
+        if bcrypt.check_password_hash(user.password, password):
+            user.balance += amount
+            db.session.commit()
+            response['status'] = 'success'
+            response['message'] = 'Credit done'
+            return jsonify(response), 200
+        else:
+            response['message'] = 'Invalid credentials'
+            return jsonify(response), 401
+    except Exception as e:
+        print(e)
+        return jsonify(response), 403

@@ -1,0 +1,40 @@
+version: "3.5"
+
+services:
+  # application:       
+  #   container_name: app_container
+  #   build:   
+  #     context: ./src
+  #     dockerfile: docker/Dockerfile-prod
+  #   restart: always
+  #   ports:
+  #   - "5000:5000"
+  #   environment:
+  #   - FLASK_ENV=development
+  #   - APP_SETTINGS=config.ProductionConfig
+  #   - SECRET_KEY=secret
+  #   - DATABASE_URL=postgresql://user:secret@pg_db_container:5432/mydatabase
+  #   - DATABASE_HOST=pg_db_container
+  #   - DATABASE_NAME=mydatabase
+  #   - DATABASE_USER=user
+  #   - DATABASE_PASSWORD=secret
+  #   depends_on: 
+  #   - database
+
+  database:
+    image: postgres:latest
+    restart: always
+    container_name: pg_db_container
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_db_vol:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: secret
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: mydatabase
+
+
+volumes:
+  pg_db_vol:

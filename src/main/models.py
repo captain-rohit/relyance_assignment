@@ -82,7 +82,7 @@ class Payment(db.Model):
 
 class Request(db.Model):
      __tablename__ = 'owing_data'
-     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True)
+     ticket_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True)
      amount = db.Column(db.FLOAT,nullable = False)
      user_from = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
      user_to = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -95,4 +95,3 @@ class Request(db.Model):
           self.user_from = user_from
           self.user_to = user_to
           self.amount = amount
-

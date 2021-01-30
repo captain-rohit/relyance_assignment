@@ -1,0 +1,31 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+    
+        {
+            "name": "Python: Flask",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "/home/rohit/Projects/important/relyance_assignment/src/app.py",
+                "FLASK_ENV": "development",
+                "FLASK_DEBUG": "1",
+                "DATABASE_HOST":"localhost",
+                "DATABASE_NAME":"mydatabase",
+                "DATABASE_USER":"user",
+                "DATABASE_PASSWORD":"secret",
+                "DATABASE_URL":"postgresql+psycopg2://user:secret@localhost:5432/mydatabase"    
+            },
+            "args": [
+                "run",
+                "--host=127.0.0.1",
+                "--port=5000"
+            ],
+            "jinja": true
+        }
+    ]
+}

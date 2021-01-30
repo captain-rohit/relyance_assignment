@@ -8,12 +8,14 @@ import os
 
 
 flask_app = Flask(__name__)
-# flask_app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+
 # flask_app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql+psycopg2://user:secret@localhost:5432/mydatabase"
+
+# flask_app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
 # flask_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 # flask_app.config["BCRYPT_LOG_ROUNDS"] = 5
-flask_app.config['TOKEN_EXPIRATION_DAYS'] = 10
-flask_app.config['TOKEN_EXPIRATION_SECONDS'] = 0
+# flask_app.config['TOKEN_EXPIRATION_DAYS'] = 10
+# flask_app.config['TOKEN_EXPIRATION_SECONDS'] = 0
 # flask_app.config['SECRET_KEY'] = 'secret'
 
 app_settings = os.getenv('APP_SETTINGS')
