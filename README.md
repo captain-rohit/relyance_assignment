@@ -58,10 +58,13 @@ Instructions for running it:-
 
 7)  You will be inside /usr/src directory. Now RUN < python >
 
-8)  Inside Python's console RUN < from app import db >
-                                < db.drop_all() >
-                                < db.create_all() >
-                                < db.session.commit() >
+8)  Inside Python's console RUN  from app import db 
+                                 
+                                 db.drop_all() 
+                                 
+                                 db.create_all() 
+                                 
+                                 db.session.commit() 
 
 9) Exit from the console using Ctrl+D. Now you are all set to make requests.
 
