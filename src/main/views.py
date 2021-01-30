@@ -221,7 +221,7 @@ def owes(resp):
             )
         response['data'] = {}
         response['status'] = 'success'
-        response['data']['owes_from'] = debit2
+        response['data']['debt'] = debit2
         response['data']['owes_to'] = credit2
         return jsonify(response), 200
     except Exception as e:
